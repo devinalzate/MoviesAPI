@@ -1,0 +1,30 @@
+Uvicorn: Aunque no esta directamente llamada dentro de ninguna clase, esta permite crear un servidor local de una app python
+para ejecutar la aplicacion
+
+Body: Esta es utilizada con el fin de definir cuales parametros dados a una funcion hacen parte del 
+cuerpo de respuesta de este metodo, pero no es tan necesario gracias a BaseModel 
+
+BaseModel: de pydantic permite lo mismo definiendo cual es el modelo base desde la creacion de un objeto
+
+Path - Field: Permiten dar una serie de restricciones a los parametros que se les dara a un metodo
+    -Path se usa dentro de los parametros de una funcion (viene de FastAPI). 
+    -Field se usa en la definicion de los datos de un objeto BaseModel (viene de pydantic)
+
+Query: Define que los parametros asignados a este valor cuando la ruta tiene un /..../ no pueden ser
+invalidos
+
+status: Estado de una peticion con mensajes de error (como 200 para un estado correcto o 400 para errores)
+
+Request: Importado desde FastAPI, se usa para definir que es necesario un valor para ejecutar una solicitud
+En este caso el request seria el token generado que se busca validar
+
+HTTPException: tipo de respuesta
+
+Depends: especifica que el metodo esta bloqueado hasta que no se cumpla cierta condicion
+
+HTTPBearer: HTTP Bearer es un esquema de autenticación que se utiliza para otorgar acceso a 
+recursos protegidos en las solicitudes HTTP. Se basa en el uso de un token de acceso, llamado token portador, 
+que se envía en el encabezado de autorización de las solicitudes.
+
+SQLmodel: Esta dependencia es usada con el fin de tener un manejo hacia bases de datos relacionales, como 
+sqlite o sqlAlchemi, desde python
