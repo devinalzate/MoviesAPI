@@ -47,28 +47,26 @@ def get_movie(session: SessionDep, id: int = Path(ge=1, le=100)) -> Movie | dict
 @router.get('/moviesByName', tags = ['Movies'], response_model=MovieBase)
 def get_movie_by_name(name: str, session: SessionDep) -> MovieBase:
     
-    movie = select(Movie).where(Movie.title == name)
+    movie = select(Movie).where(Movie.title == name) #con este where deberia de identificar la pelicula con 
+                                                    #ese campo pero no esta sucediendo... Arreglo pendiente
+    print(movie)
     result = session.exec(movie)
     
     for peli in result:
         return peli
-    
-
 
 @router.get('/movies/', tags=["Movies"], response_model=list[MovieBase]) 
-def get_movie_by_category_year(category: str = Query(min_length=5), year: int = Query(ge=1970, le=2025)) -> list[MovieBase]: 
+def get_movie_by_category(session: SessionDep,category_1: str = Query(min_length=5)) -> list[MovieBase]: 
     #aqui le estamos dando un parametro de ruta Query (Cuando solo esta el "/") para 
     #que los valores al ser ingresador no puedan ser invalidos
-    list=[]
-    for movie in movies:
-        if movie['category'] == category or movie['year'] == str(year):
-            list.append(movie)
-            
-    if list:
-        return JSONResponse(content=list)
-    else:
-        return JSONResponse(content = {'category' : "La categoria no fue encontrada", 'year' : "El año no fue encontrado"})
-
+    
+    movieCategory = select(Movie).where(Movie.category == category_1)
+    
+    resultCategory = session.exec(movieCategory)
+    list = []
+    for peli in resultCategory:
+        list.append(peli.model_dump())
+    return list
 
 @router.post('/movies', tags=['Movies'], response_model=Movie)  #Con la especificacion "Body()" decimos que el parametro dado hace parte del cuerpo de la peticion
 async def add_movie(movie: MovieBase, session: SessionDep):  #ya no es necesario le "Body()" Debido a que esta definido como esquema o "BaseModel" en la parte superior
