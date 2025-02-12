@@ -1,14 +1,13 @@
-from fastapi import FastAPI, Body,  Path, Query, status, Request, HTTPException, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
-from models import User, Movie, MovieBase
-from jwt_manager import create_token, validate_token #codifica y decodifica tokens con ciertos contenidos dados
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
-from db import SessionDep, create_all_tables
 from sqlmodel import select
 
-app = FastAPI(lifespan=create_all_tables)
-app.title = "Mi app FastApi"
-app.version = "0.0.1"
+from jwt_manager import validate_token
+from models import Movie, MovieBase
+from dataBase.db import SessionDep
+
+router = APIRouter()
 
 class JWTBearer(HTTPBearer): #termina siendo un objeto que enviamos como parametro a una dependecia para que use su funcion __call__ 
                             #para la validacion de tokens y el contenido de estos
@@ -20,39 +19,8 @@ class JWTBearer(HTTPBearer): #termina siendo un objeto que enviamos como paramet
         if data['email'] != "admin@gmail.com":
             raise HTTPException(status_code = 403, detail="Credenciales invalidas")
 
-        
 
-movies = [
-    {
-        "id": 1,
-        "title": "Avatar",
-        "overview": "En un exuberante planeta llamado Pandora viven los Na'vi, seres que...",   
-        "year": "2019",
-        "rating": 7.8,
-        "category": "Acción"
-    },
-    {
-        "id": 2,
-        "title": "Avatar",
-        "overview": "En un exuberante planeta llamado Pandora viven los Na'vi, seres que...",
-        "year": "2009",
-        "rating": 7.8,
-        "category": "Drama"
-    }
-]
-
-@app.get("/", tags=["Home"])
-def message():
-    return HTMLResponse('<h1> Hola mundo </h1>')
-
-@app.post("/Login", tags=['Auth'])
-def login(user: User): #genera un token con contenido base del tipo de objeto User
-    if user.email == "admin@gmail.com" and user.password == "admin":
-        token : str = create_token(user.model_dump()) # "--.model_dump()" se encarga de convertir en un diccionario un 
-                                                        #parametro dado como modelo o "BaseModel"
-        return JSONResponse(content=token) #con esto ya se ha generado un token
-
-@app.get('/movies', tags=['Movies'], response_model=list[Movie], dependencies=[Depends(JWTBearer())]) #es importante tenerlo como lista
+@router.get('/movies', tags=['Movies'], response_model=list[Movie], dependencies=[Depends(JWTBearer())]) #es importante tenerlo como lista
                                                                                                         #todo parametro dado
             #al tener el parametro "dependencies", es necesario contar con el token-validado dado por el 
             # objeto JWTBearer a la hora de querer ejecutar el metodo get, esto debido a que la clase que se esta dando 
@@ -62,7 +30,7 @@ def login(user: User): #genera un token con contenido base del tipo de objeto Us
 def get_movies(session: SessionDep) -> list[Movie]:
     return session.exec(select(Movie)).all()
 
-@app.get('/movies/{id}', tags=['Movies'], response_model=Movie)
+@router.get('/movies/{id}', tags=['Movies'], response_model=Movie)
 def get_movie(session: SessionDep, id: int = Path(ge=1, le=100)) -> Movie | dict: #aqui le estamos dando un parametro de ruta (PATH) para 
                                             #que los valores al ser ingresador no puedan ser invalidos
     movieConsulted = session.get(Movie, id)
@@ -76,15 +44,18 @@ def get_movie(session: SessionDep, id: int = Path(ge=1, le=100)) -> Movie | dict
     #         return JSONResponse(content = movie)
     # return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content = {'message' : "No se ha encontrado una pelicula con ese id"})
 
-@app.get('/moviesByName', tags = ['Movies'], response_model=MovieBase)
-def get_movie_by_name(title: str) -> MovieBase:
-    for item in movies:
-        if item['title'] == title:
-            return JSONResponse(content = item)
-    return JSONResponse(content = {'message' : "No se ha encontrado una pelicula con ese titulo"})
+@router.get('/moviesByName', tags = ['Movies'], response_model=MovieBase)
+def get_movie_by_name(name: str, session: SessionDep) -> MovieBase:
+    
+    movie = select(Movie).where(Movie.title == name)
+    result = session.exec(movie)
+    
+    for peli in result:
+        return peli
+    
 
 
-@app.get('/movies/', tags=["Movies"], response_model=list[MovieBase]) 
+@router.get('/movies/', tags=["Movies"], response_model=list[MovieBase]) 
 def get_movie_by_category_year(category: str = Query(min_length=5), year: int = Query(ge=1970, le=2025)) -> list[MovieBase]: 
     #aqui le estamos dando un parametro de ruta Query (Cuando solo esta el "/") para 
     #que los valores al ser ingresador no puedan ser invalidos
@@ -99,7 +70,7 @@ def get_movie_by_category_year(category: str = Query(min_length=5), year: int = 
         return JSONResponse(content = {'category' : "La categoria no fue encontrada", 'year' : "El año no fue encontrado"})
 
 
-@app.post('/movies', tags=['Movies'], response_model=Movie)  #Con la especificacion "Body()" decimos que el parametro dado hace parte del cuerpo de la peticion
+@router.post('/movies', tags=['Movies'], response_model=Movie)  #Con la especificacion "Body()" decimos que el parametro dado hace parte del cuerpo de la peticion
 async def add_movie(movie: MovieBase, session: SessionDep):  #ya no es necesario le "Body()" Debido a que esta definido como esquema o "BaseModel" en la parte superior
     finalMovie = Movie.model_validate(movie.model_dump())
     session.add(finalMovie)
@@ -112,7 +83,7 @@ async def add_movie(movie: MovieBase, session: SessionDep):  #ya no es necesario
 
     return finalMovie
 
-@app.delete('/movies/{id}', tags=['Movies']) #metodo de eliminacion de elementos de un diccionario
+@router.delete('/movies/{id}', tags=['Movies']) #metodo de eliminacion de elementos de un diccionario
 def del_movie(id : int, session: SessionDep):
     movieToDelate = session.get(Movie, id)
     if not movieToDelate:
@@ -122,7 +93,7 @@ def del_movie(id : int, session: SessionDep):
         session.commit()
         return JSONResponse(content={"Detail": "movie delated"})
 
-@app.put('/movies/{id}', tags=['Movies'], response_model=Movie, status_code=status.HTTP_201_CREATED) #metodo de modificacion de elementos de un diccionario
+@router.put('/movies/{id}', tags=['Movies'], response_model=Movie, status_code=status.HTTP_201_CREATED) #metodo de modificacion de elementos de un diccionario
 def change_movie_nameAndYear(id: int, movie: MovieBase, session: SessionDep):
     movieToModify = session.get(Movie, id)
     if movieToModify:
@@ -134,5 +105,3 @@ def change_movie_nameAndYear(id: int, movie: MovieBase, session: SessionDep):
         return JSONResponse(content = {'message' : "Se ha modificado correctamente la pelicula"})
     else:
         return JSONResponse(content = {'message' : "No se encontro la pelicula"})
-    
-    

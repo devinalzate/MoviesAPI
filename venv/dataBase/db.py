@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends
 from sqlmodel import Session, create_engine, SQLModel
 
 sqlite_name = "db.sqlite3"
-sqlite_url = f"sqlite:///{sqlite_name}"
+sqlite_url = f"sqlite:///C:\\Users\\DEVIN ALZATE\\Documents\\Devin Alzate\\Portafolio\\pythonplatzi\\venv\\dataBase\\{sqlite_name}"
 
 engine = create_engine(sqlite_url) #motor de conexion a una base de datos
 
