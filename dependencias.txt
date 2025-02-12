@@ -1,5 +1,8 @@
+FastAPI: se instalo usando el comando (pip intall fastapi)
+
 Uvicorn: Aunque no esta directamente llamada dentro de ninguna clase, esta permite crear un servidor local de una app python
 para ejecutar la aplicacion
+--Running uvicorn 0.34.0 with CPython 3.12.5 on Windows--
 
 Body: Esta es utilizada con el fin de definir cuales parametros dados a una funcion hacen parte del 
 cuerpo de respuesta de este metodo, pero no es tan necesario gracias a BaseModel 
