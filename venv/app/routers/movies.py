@@ -56,16 +56,20 @@ def get_movie_by_name(name: str, session: SessionDep) -> MovieBase:
         return peli
 
 @router.get('/movies/', tags=["Movies"], response_model=list[MovieBase]) 
-def get_movie_by_category(session: SessionDep,category_1: str = Query(min_length=5)) -> list[MovieBase]: 
+def get_movie_by_category(session: SessionDep,category_1: str = Query(min_length=5), year_1 :int = Query(ge=1970, le=2025)) -> list[MovieBase]: 
     #aqui le estamos dando un parametro de ruta Query (Cuando solo esta el "/") para 
     #que los valores al ser ingresador no puedan ser invalidos
     
     movieCategory = select(Movie).where(Movie.category == category_1)
+    movieYear = select(Movie).where(Movie.year == year_1)
     
     resultCategory = session.exec(movieCategory)
+    resultYear = session.exec(movieYear)
     list = []
     for peli in resultCategory:
         list.append(peli.model_dump())
+    for peli2 in resultYear:
+        list.append(peli2.model_dump())
     return list
 
 @router.post('/movies', tags=['Movies'], response_model=Movie)  #Con la especificacion "Body()" decimos que el parametro dado hace parte del cuerpo de la peticion
