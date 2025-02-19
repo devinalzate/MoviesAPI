@@ -31,3 +31,5 @@ que se envía en el encabezado de autorización de las solicitudes.
 
 SQLmodel: Esta dependencia es usada con el fin de tener un manejo hacia bases de datos relacionales, como 
 sqlite o sqlAlchemi, desde python
+
+email_validator
