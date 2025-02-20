@@ -4,7 +4,7 @@ from fastapi.security import HTTPBearer
 from sqlmodel import select
 
 from jwt_manager import validate_token
-from models import Movie, MovieBase, MovieCreate, Plan
+from models import Movie, MovieBase, MoviesPlan, Plan
 from dataBase.db import SessionDep
 
 router = APIRouter()
@@ -30,8 +30,6 @@ class JWTBearer(HTTPBearer): #termina siendo un objeto que enviamos como paramet
 def get_movies(session: SessionDep) -> list[Movie]:
     query = select(Movie)
     movies = session.exec(query).all()
-    if not movies:
-        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
     return movies
 
 @router.get('/movies/{id}', tags=['Movies'], response_model=Movie)
@@ -77,17 +75,27 @@ def get_movie_by_category(session: SessionDep,category_1: str = Query(min_length
     return list
 
 @router.post('/movies', tags=['Movies'], response_model=Movie)  
-async def add_movie(movie: MovieCreate, session: SessionDep): 
+async def add_movie(movie: MovieBase, session: SessionDep): 
     movie_dict = movie.model_dump()
-    plan = session.get(Plan, movie_dict['plan_id'])
-    if not plan:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     finalMovie = Movie.model_validate(movie_dict)
     session.add(finalMovie)
     session.commit()
     session.refresh(finalMovie)
 
     return finalMovie
+
+@router.post('/movies_to_plan' , tags=['Movies'])
+async def add_movie_to_plan(session: SessionDep, movie_id : int, plan_id : int):
+    movie_db = session.get(Movie, movie_id)
+    plan_db = session.get(Plan, plan_id)
+    if not movie_db or not plan_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie or plan not founds")
+    movie_plan = MoviesPlan(movie_id=movie_db.id, plan_id=plan_db.id)
+    session.add(movie_plan)
+    session.commit()
+    session.refresh(movie_plan)
+    
+    return movie_plan
 
 @router.delete('/movies/{id}', tags=['Movies']) #metodo de eliminacion de elementos de un diccionario
 def del_movie(id : int, session: SessionDep):
