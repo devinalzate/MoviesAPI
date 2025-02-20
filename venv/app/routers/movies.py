@@ -27,8 +27,10 @@ class JWTBearer(HTTPBearer): #termina siendo un objeto que enviamos como paramet
             #como dependecia, es una herencia de HTTPBearer 
 
             #leer especificacion en dependecias.txt. de para que se usa esta clase HTTPBearer
-def get_movies(session: SessionDep) -> list[Movie]:
-    query = select(Movie)
+def get_movies(session: SessionDep, 
+               skip : int = Query(0, description="Registros de peliculas a omitir"),
+               limit : int = Query(2, description ="Numero de registros de peliculas que se mostraran")) -> list[Movie]:
+    query = select(Movie).offset(skip).limit(limit)
     movies = session.exec(query).all()
     return movies
 

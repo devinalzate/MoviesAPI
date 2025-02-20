@@ -1,4 +1,7 @@
-from sqlmodel import SQLModel , Field, Relationship   #conecta un campo de pydantic con un campo de SQLmodel
+from sqlmodel import SQLModel , Field, Relationship, Session, select   #conecta un campo de pydantic con un campo de SQLmodel
+from pydantic import field_validator
+from dataBase.db import engine
+from fastapi import HTTPException , status
     
 class MoviesPlan(SQLModel, table = True):
     id : int = Field(primary_key=True)
@@ -23,6 +26,16 @@ class User(SQLModel, table=True):
     user_name: str | None = Field(None, primary_key=True)
     plan_id: int | None = Field(foreign_key="plan.id")
     plan: Plan = Relationship(back_populates="users")
+    
+    @field_validator("email")
+    @classmethod
+    def validate (cls, value):
+        session = Session(engine)
+        query = select(User).where(User.email == value)
+        result = session.exec(query)
+        if result:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="El correo ingresado ya existe")
+        return value
    
 class MovieBase(SQLModel): #Esto se hizo con el fin de tener a la clase "Movie" como un esquema, del cual cada que lo
                            # requiramos solo necesitaremos de llamarlo para acceder a atributos de tipo pelicula o "Movie"
